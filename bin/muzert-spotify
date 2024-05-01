@@ -1,0 +1,65 @@
+#!/usr/bin/env sh
+
+get_spotify_link_id() {
+	local link="$1"
+
+	echo -n "$link" | rev | cut -d '/' -f 1 | rev
+}
+
+get_playlist_name() {
+	local res="$(
+		curl -Ss "https://api.spotify.com/v1/playlists/${playlist_id}" \
+			-H "Authorization: Bearer $ACCESS_TOKEN"
+	)"
+
+	local name="$(echo "$res" | jq '.name' -r)"
+
+	echo -n "$name"
+}
+
+get_playlist_tracks() {
+	local playlist_id="$1"
+
+	local res="$(
+		curl -Ss "https://api.spotify.com/v1/playlists/${playlist_id}/tracks" \
+			-H "Authorization: Bearer $ACCESS_TOKEN"
+	)"
+	local count="$(echo "$res" | jq '.total')"
+	local type="playlist"
+	local name="$(get_playlist_name "$playlist_id")"
+	local links="$(
+		echo "$res" |
+			jq '.items.[].track.external_urls.spotify' |
+			jq -s
+	)"
+
+	echo "{
+				\"count\": \"$count\",
+				\"type\": \"$type\",
+				\"name\": \"$name\",
+				\"links\": $links
+			}" | jq
+}
+
+get_token() {
+	local res="$(
+		curl -Ss -X POST "https://accounts.spotify.com/api/token" \
+			-H "Content-Type: application/x-www-form-urlencoded" \
+			-d "grant_type=client_credentials&client_id=2e4b881b24ed4915bf79733be2c867bf&client_secret=$CLIENT_SECRET"
+	)"
+
+	echo "$res" | jq '.access_token' -r
+}
+
+get_track_name() {
+	local id="$1"
+
+	local res="$(
+		curl -Ss "https://api.spotify.com/v1/tracks/${id}" \
+			-H "Authorization: Bearer $ACCESS_TOKEN"
+	)"
+
+	echo "$res" | jq '.name' -r
+}
+
+# get_token

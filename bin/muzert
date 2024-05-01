@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+
+MUZERT_DIR="$HOME/.config/muzert"
+ALL_MUSIC_DIR="$HOME/Music"
+BY_LINK_DIR="$MUZERT_DIR/by-link"
+PLAYLIST_DIR="$MUZERT_DIR/playlists"
+META_DIR="$MUZERT_DIR/meta"
+
+source .env
+source ./bin/muzert-spotify
+
+log() {
+	local message="$1"
+
+	echo "$message" >&2
+}
+
+assert_dir() {
+	local dir="$1"
+
+	! [ -d "$dir" ] && mkdir -p "$dir"
+}
+
+get_file_extension() {
+	local file="$1"
+
+	echo -n "$file" | rev | cut -d . -f 1 | rev
+}
+
+get_hash() {
+	local link="$1"
+
+	echo -n "$link" | md5sum | awk '{ print $1 }'
+}
+
+get_local_song_by_link() {
+	local link="$1"
+	local hash="$(get_hash "$link")"
+
+	local symlinked_file="$(ls "$BY_LINK_DIR" | grep -F "$hash")"
+	local actual_file="$(realpath "$BY_LINK_DIR/$symlinked_file")"
+
+	echo -n "$actual_file"
+}
+
+download_song() {
+	local link="$1"
+	local hash="$(get_hash "$link")"
+
+	ls "$BY_LINK_DIR" | grep -F "$hash" && {
+		log "link $link is already downloaded"
+		return
+	}
+
+	cd "$ALL_MUSIC_DIR"
+	log "downloading link $link..."
+	spotdl --sync-without-deleting download "$link" || return 1
+	cd -
+
+	local track_name="$(get_track_name "$(get_spotify_link_id "$link")")"
+	log "track name is $track_name"
+
+	local new_file_name="$(
+		ls "$ALL_MUSIC_DIR" |
+			grep -F "$track_name"
+	)"
+
+	[ -z "$new_file_name" ] && {
+		log "new downloaded file not found!"
+		return 1
+	}
+
+	log "new file found: $new_file_name"
+
+	local hash="$(get_hash "$link")"
+
+	local ext="$(get_file_extension "$new_file_name")"
+
+	ln -s "$ALL_MUSIC_DIR/$new_file_name" "$BY_LINK_DIR/$hash.$ext"
+}
+
+get_link_metadata() {
+	local link="$1"
+	local no_cache="$2"
+
+	local hash="$(get_hash "$link")"
+	local file="$META_DIR/$hash"
+
+	[ -f "$file" ] && [ -z "$no_cache" ] && {
+		cat "$file"
+		return
+	}
+
+	log "fetching playlist/albums's metadata into $file..." >&2
+	get_playlist_tracks "$(get_spotify_link_id "$linke")" >"$file" || {
+		log "fetching metadata's failed!"
+	}
+	cat "$file"
+}
+
+download_playlist() {
+	local link="$1"
+
+	local metadata="$(get_link_metadata "$link")"
+
+	local playlist_name="$(echo "$metadata" | jq -r '.name')"
+	local dir="$PLAYLIST_DIR/$playlist_name"
+
+	mkdir -p "$dir"
+
+	echo "$metadata" | jq '.links.[]' -r | while read -r link; do
+		download_song "$link" || {
+			echo "failed downloading playlist"
+			exit 1
+		}
+		song="$(get_local_song_by_link "$link")"
+		ln -s "$song" "$dir"
+	done
+}
+
+init() {
+	assert_dir "$MUZERT_DIR"
+	assert_dir "$ALL_MUSIC_DIR"
+	assert_dir "$BY_LINK_DIR"
+	assert_dir "$META_DIR"
+}
+
+init
+download_playlist "$1"

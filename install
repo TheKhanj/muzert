@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+sudo ln -sf "$PWD/bin/muzert" /usr/bin
