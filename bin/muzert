@@ -37,7 +37,7 @@ get_local_song_by_link() {
 	local link="$1"
 	local hash="$(get_hash "$link")"
 
-	local symlinked_file="$(ls "$BY_LINK_DIR" | grep -F "$hash")"
+	local symlinked_file="$(ls "$BY_LINK_DIR" | grep -F "$hash" | head -n 1)"
 	local actual_file="$(realpath "$BY_LINK_DIR/$symlinked_file")"
 
 	echo -n "$actual_file"
@@ -62,7 +62,8 @@ download_song() {
 
 	local new_file_name="$(
 		ls "$ALL_MUSIC_DIR" |
-			grep -F "$track_name"
+			grep -F "$track_name" |
+			head -n 1
 	)"
 
 	[ -z "$new_file_name" ] && {
@@ -92,7 +93,7 @@ get_link_metadata() {
 	}
 
 	log "fetching playlist/albums's metadata into $file..." >&2
-	get_playlist_tracks "$(get_spotify_link_id "$linke")" >"$file" || {
+	get_playlist_tracks "$(get_spotify_link_id "$link")" >"$file" || {
 		log "fetching metadata's failed!"
 	}
 	cat "$file"
