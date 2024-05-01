@@ -111,8 +111,8 @@ download_playlist() {
 
 	echo "$metadata" | jq '.links.[]' -r | while read -r link; do
 		download_song "$link" || {
-			echo "failed downloading playlist"
-			exit 1
+			echo "failed downloading playlist, skipping..."
+			continue
 		}
 		song="$(get_local_song_by_link "$link")"
 		ln -s "$song" "$dir"
