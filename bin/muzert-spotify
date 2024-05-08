@@ -61,5 +61,3 @@ get_track_name() {
 
 	echo "$res" | jq '.name' -r
 }
-
-# get_token
