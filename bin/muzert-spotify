@@ -1,5 +1,11 @@
 #!/usr/bin/env sh
 
+log() {
+	local message="$1"
+
+	echo "$message" >&2
+}
+
 get_spotify_link_id() {
 	local link="$1"
 
@@ -14,6 +20,11 @@ get_playlist_name() {
 
 	local name="$(echo "$res" | jq '.name' -r)"
 
+	[ -z "$name" ] && {
+		log "failed fetching playlist's name"
+		return 1
+	}
+
 	echo -n "$name"
 }
 
@@ -27,6 +38,8 @@ get_playlist_tracks() {
 	local count="$(echo "$res" | jq '.total')"
 	local type="playlist"
 	local name="$(get_playlist_name "$playlist_id")"
+	[ "$?" != 0 ] && return 1
+
 	local links="$(
 		echo "$res" |
 			jq '.items.[].track.external_urls.spotify' |

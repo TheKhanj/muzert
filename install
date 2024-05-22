@@ -1,3 +1,6 @@
 #!/usr/bin/env sh
 
-sudo ln -sf "$PWD/bin/muzert" /usr/bin
+cat <<-EOF | sudo tee /usr/bin/muzert >/dev/null
+	cd "$PWD"
+	./bin/muzert $@
+EOF
