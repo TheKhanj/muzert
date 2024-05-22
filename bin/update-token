@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
 
 . './bin/muzert-spotify'
+. ./.env
 
 update_token() {
 	local token="$(get_token)"
 
-	sed -i .env "s/ACCESS_TOKEN=.*/ACCESS_TOKEN=$token/"
+	cat <<-EOF >.env
+		export CLIENT_SECRET=$CLIENT_SECRET
+		export ACCESS_TOKEN=$token
+	EOF
 }
 
 should_update_token() {

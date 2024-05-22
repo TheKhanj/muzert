@@ -127,5 +127,5 @@ init() {
 }
 
 init
-./bin/update_token
+./bin/update-token
 download_playlist "$1"
