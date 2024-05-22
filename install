@@ -2,5 +2,7 @@
 
 cat <<-EOF | sudo tee /usr/bin/muzert >/dev/null
 	cd "$PWD"
-	./bin/muzert $@
+	./bin/muzert \$@
 EOF
+
+sudo chmod +x /usr/bin/muzert
