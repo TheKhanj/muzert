@@ -25,7 +25,7 @@ get_playlist_name() {
 		return 1
 	}
 
-	echo -n "$name"
+	echo -n "$name" | sed 's|/|-|g'
 }
 
 get_playlist_tracks() {
